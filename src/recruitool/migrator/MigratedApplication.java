@@ -10,5 +10,5 @@ class MigratedApplication
 	
 	Timestamp timeOfReg;
 	
-	String acc_id;
+	long acc_id;
 }

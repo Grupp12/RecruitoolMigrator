@@ -61,3 +61,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+derby.log
+*.netbeans_automatic_build
+build/classes/.netbeans_update_resources

@@ -235,6 +235,34 @@ public class RecruitoolMigrator {
 			}
 		}
 	}
+	private static MigratedAccount getMigratedAccount(String ssn) throws SQLException {
+		String getAccSql = "select * from ACCOUNT where SSN=?";
+		try (PreparedStatement getAccStmt = newConn.prepareStatement(getAccSql))
+		{
+			getAccStmt.setString(1, ssn);
+			
+			ResultSet rs = getAccStmt.executeQuery();
+			rs.next();
+			
+			MigratedAccount acc = new MigratedAccount();
+			
+			acc.id = rs.getLong("ID");
+	
+			acc.firstName = rs.getString("FIRSTNAME");
+			acc.lastName = rs.getString("LASTNAME");
+
+			acc.email = rs.getString("EMAIL");
+
+			acc.username = rs.getString("USERNAME");
+			acc.password = rs.getString("PASSWORD");
+
+			acc.acc_role = rs.getString("ACC_ROLE");
+
+			acc.ssn = rs.getString("SSN");
+			
+			return acc;
+		}
+	}
 	
 	private static void migrateApplications() throws SQLException {
 		migrateAvailabilities();
@@ -242,7 +270,7 @@ public class RecruitoolMigrator {
 		migrateCompetenceProfiles();
 	}
 	
-	private static MigratedApplication createMigratedApplication(String accUsername) throws SQLException {
+	private static MigratedApplication createMigratedApplication(MigratedAccount acc) throws SQLException {
 		String newApplSql = "insert into " +
 				"APPLICATION(APPL_STATUS, TIME_OF_REG, ACC_ID) " +
 				"values(?, ?, ?)";
@@ -251,22 +279,22 @@ public class RecruitoolMigrator {
 			newApplStmt.setString(1, "SUBMITTED");
 			newApplStmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
 
-			newApplStmt.setString(3, accUsername);
+			newApplStmt.setLong(3, acc.id);
 
 			newApplStmt.execute();
 		}
 		
-		return getMigratedApplication(accUsername);
+		return getMigratedApplication(acc);
 	}
-	private static MigratedApplication getMigratedApplication(String accUsername) throws SQLException {
+	private static MigratedApplication getMigratedApplication(MigratedAccount acc) throws SQLException {
 		String getApplSql = "select * from APPLICATION where ACC_ID=?";
 		try (PreparedStatement getApplStmt = newConn.prepareStatement(getApplSql))
 		{
-			getApplStmt.setString(1, accUsername);
+			getApplStmt.setLong(1, acc.id);
 
 			ResultSet rs = getApplStmt.executeQuery();
 			if (!rs.next())
-				return createMigratedApplication(accUsername);
+				return createMigratedApplication(acc);
 			
 			MigratedApplication appl = new MigratedApplication();
 			
@@ -275,7 +303,7 @@ public class RecruitoolMigrator {
 			appl.appl_status = rs.getString("APPL_STATUS");
 			appl.timeOfReg = rs.getTimestamp("TIME_OF_REG");
 			
-			appl.acc_id = rs.getString("ACC_ID");
+			appl.acc_id = acc.id;
 			
 			return appl;
 		}
@@ -291,7 +319,7 @@ public class RecruitoolMigrator {
 			{
 				LegacyAccount acc = oldAccounts.get(avail.account_id);
 				
-				MigratedApplication appl = getMigratedApplication(acc.username);
+				MigratedApplication appl = getMigratedApplication(getMigratedAccount(acc.ssn));
 				
 				newAvailStmt.setDate(1, avail.fromDate);
 				newAvailStmt.setDate(2, avail.toDate);
@@ -327,7 +355,7 @@ public class RecruitoolMigrator {
 			for (LegacyCompetenceProfile profile : oldProfiles.values())
 			{
 				LegacyAccount acc = oldAccounts.get(profile.account_id);
-				MigratedApplication appl = getMigratedApplication(acc.username);
+				MigratedApplication appl = getMigratedApplication(getMigratedAccount(acc.ssn));
 				String competence = competences.get(profile.competence_id);
 				
 				newCompProStmt.setBigDecimal(1, profile.yearsOfExp);

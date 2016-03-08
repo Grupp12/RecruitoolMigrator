@@ -2,6 +2,8 @@ package recruitool.migrator;
 
 class MigratedAccount
 {
+	long id;
+	
 	String firstName;
 	String lastName;
 	
