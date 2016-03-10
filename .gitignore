@@ -64,3 +64,4 @@ $RECYCLE.BIN/
 derby.log
 *.netbeans_automatic_build
 build/classes/.netbeans_update_resources
+build/built-jar.properties
