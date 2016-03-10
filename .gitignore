@@ -67,3 +67,4 @@ derby.log
 # Build output folders
 build
 dist
+nbproject/private/private.xml
