@@ -1,10 +1,13 @@
 package recruitool.migrator;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -15,7 +18,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 
 /**
  * The {@code DatabaseMigrator} is a small program that is
@@ -26,7 +32,59 @@ public class RecruitoolMigrator {
 	}
 	
 	public static void main(String[] args) {
-		migrate();
+		boolean cmd = false;
+		if (args.length > 0) {
+			if (args[0].equals("-cmd")) {
+				cmd = true;
+			}
+		}
+		
+		File oldSqlFile;
+		
+		ArrayList<Byte> outputBuf = new ArrayList<>();
+		if (cmd)
+		{
+			if (args.length > 1) {
+				oldSqlFile = new File(args[1]);
+			}
+			else {
+				oldSqlFile = new File("old.sql");
+			}
+		}
+		else {
+			System.setOut(new PrintStream(new OutputStream() {
+				@Override
+				public void write(int b) throws IOException {
+					outputBuf.add((byte)b);
+				}
+			}));
+			
+			JFileChooser fc = new JFileChooser(".");
+			fc.showOpenDialog(null);
+			oldSqlFile = fc.getSelectedFile();			
+		}
+		
+		try {
+			migrate(oldSqlFile);
+			
+			if (!cmd) {
+				byte[] bufArr = new byte[outputBuf.size()];
+				for (int i = 0; i < bufArr.length; i++) {
+					bufArr[i] = outputBuf.get(i);
+				}
+				String output = new String(bufArr);
+				JOptionPane.showMessageDialog(null, output, "Migration Completed", JOptionPane.INFORMATION_MESSAGE);
+			}
+		}
+		catch (SQLException | IOException ex) {
+			if (cmd) {
+				ex.printStackTrace();
+			}
+			else {
+				JOptionPane.showMessageDialog(null, ex.getMessage(), "Error!", JOptionPane.ERROR_MESSAGE);
+			}
+			System.exit(-1);
+		}
 	}
 	
 	private static Connection oldConn;
@@ -40,27 +98,24 @@ public class RecruitoolMigrator {
 	private static HashMap<Long, LegacyAvailability> oldAvailabilities = new HashMap<>();
 	private static HashMap<Long, LegacyCompetenceProfile> oldProfiles = new HashMap<>();
 	
-	private static void migrate() {
-		try {
-			oldConn = DriverManager.getConnection("jdbc:derby:memory:mig_db;create=true");
-			parseLegacySqlScript();
-			System.out.println("Legacy database created!");
+	private static void migrate(File oldSqlFile) throws SQLException, IOException {
+		oldConn = DriverManager.getConnection("jdbc:derby:memory:mig_db;create=true");
+		parseLegacySqlScript(oldSqlFile);
+		System.out.println("Legacy database created!");
 
-			newConn = DriverManager.getConnection("jdbc:derby://localhost:1527/recruitool;user=root;password=1234");
-			System.out.println("Connected to new database!");
+		newConn = DriverManager.getConnection("jdbc:derby://localhost:1527/recruitool;user=root;password=1234");
+		newConn.setAutoCommit(false);
+		System.out.println("Connected to new database!");
 
-			loadLegacyTables();
-			oldConn.close();
+		loadLegacyTables();
+		oldConn.close();
 
-			migrateAccounts();
-			migrateApplications();
-			newConn.close();
+		migrateAccounts();
+		migrateApplications();
+		newConn.commit();
+		newConn.close();
 
-			System.out.println("Database migration completed!");
-		}
-		catch (SQLException | IOException ex) {
-			ex.printStackTrace();
-		}
+		System.out.println("Database migration completed!");
 	}
 	
 	private static void loadLegacyTables() throws SQLException {
@@ -369,8 +424,8 @@ public class RecruitoolMigrator {
 		}
 	}
 	
-	private static void parseLegacySqlScript() throws IOException {
-		InputStream inStream = new FileInputStream("old.sql");
+	private static void parseLegacySqlScript(File oldSqlFile) throws IOException {
+		InputStream inStream = new FileInputStream(oldSqlFile);
 		Reader reader = new BufferedReader(new InputStreamReader(inStream, "UTF-8"));
 		
 		StringBuilder statement = new StringBuilder();
