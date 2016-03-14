@@ -343,6 +343,10 @@ public class RecruitoolMigrator {
 					String groupName = rs.getString("ACC_ROLE");
 					String username = rs.getString("USERNAME");
 					
+					// Applicants don't have any login credentials
+					if (groupName.equals("APPLICANT"))
+						continue;
+					
 					newAccGrpStmt.setString(1,groupName);
 					newAccGrpStmt.setString(2, username);
 					newAccGrpStmt.setLong(3, acc_id);
