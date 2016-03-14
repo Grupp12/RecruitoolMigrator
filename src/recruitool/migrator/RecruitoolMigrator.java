@@ -3,6 +3,7 @@ package recruitool.migrator;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -40,7 +41,7 @@ public class RecruitoolMigrator {
 			}
 		}
 		
-		File oldSqlFile;
+		File oldSqlFile = null;
 		
 		ArrayList<Byte> outputBuf = new ArrayList<>();
 		if (cmd)
@@ -49,7 +50,9 @@ public class RecruitoolMigrator {
 				oldSqlFile = new File(args[1]);
 			}
 			else {
-				oldSqlFile = new File("old.sql");
+				System.out.println("Must specify the path to the sql script file!");
+				System.out.println("Usage: java -jar RecruitoolMigrator.jar -cmd \"<sql script file>\"");
+				System.exit(1);
 			}
 		}
 		else {
@@ -62,10 +65,14 @@ public class RecruitoolMigrator {
 			
 			JFileChooser fc = new JFileChooser(".");
 			fc.showOpenDialog(null);
-			oldSqlFile = fc.getSelectedFile();			
+			oldSqlFile = fc.getSelectedFile();
 		}
 		
 		try {
+			if (oldSqlFile == null) {
+				throw new FileNotFoundException("Must specify an sql sript file!");
+			}
+			
 			migrate(oldSqlFile);
 			
 			if (!cmd) {
