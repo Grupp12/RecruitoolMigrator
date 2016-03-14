@@ -290,12 +290,14 @@ public class RecruitoolMigrator {
 
 				String acc_role = roles.get(oldAcc.role_id);
 				newAccStmt.setString(6, acc_role);
-				
+
 				newAccStmt.setString(7, oldAcc.ssn);
 
-				newAccStmt.execute();
+				newAccStmt.executeUpdate();
 			}
 		}
+		
+		migrateAccountGroups();
 	}
 	private static MigratedAccount getMigratedAccount(String ssn) throws SQLException {
 		String getAccSql = "select * from ACCOUNT where SSN=?";
@@ -323,6 +325,31 @@ public class RecruitoolMigrator {
 			acc.ssn = rs.getString("SSN");
 			
 			return acc;
+		}
+	}
+	private static void migrateAccountGroups() throws SQLException {
+		String newAccGrpSql = "insert into " +
+				"ACCOUNT_GROUPS(GROUPNAME, USERNAME, ACCOUNT) " +
+				"values(?, ?, ?)";
+		try (PreparedStatement newAccGrpStmt = newConn.prepareStatement(newAccGrpSql))
+		{
+			String getAccsSql = "select * from ACCOUNT";
+			try (PreparedStatement getAccsStmt = newConn.prepareStatement(getAccsSql))
+			{
+				ResultSet rs = getAccsStmt.executeQuery();
+				while (rs.next())
+				{
+					long acc_id = rs.getLong("ID");
+					String groupName = rs.getString("ACC_ROLE");
+					String username = rs.getString("USERNAME");
+					
+					newAccGrpStmt.setString(1,groupName);
+					newAccGrpStmt.setString(2, username);
+					newAccGrpStmt.setLong(3, acc_id);
+
+					newAccGrpStmt.executeUpdate();
+				}
+			}
 		}
 	}
 	
