@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import security.Crypto;
 
 /**
  * The {@code DatabaseMigrator} is a small program that is
@@ -73,7 +74,7 @@ public class RecruitoolMigrator {
 					bufArr[i] = outputBuf.get(i);
 				}
 				String output = new String(bufArr);
-				JOptionPane.showMessageDialog(null, output, "Migration Completed", JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(null, output, "Migration Log", JOptionPane.INFORMATION_MESSAGE);
 			}
 		}
 		catch (SQLException | IOException ex) {
@@ -97,6 +98,8 @@ public class RecruitoolMigrator {
 	private static HashMap<Long, LegacyAccount> oldAccounts = new HashMap<>();
 	private static HashMap<Long, LegacyAvailability> oldAvailabilities = new HashMap<>();
 	private static HashMap<Long, LegacyCompetenceProfile> oldProfiles = new HashMap<>();
+	
+	private static final Timestamp NOW = new Timestamp(System.currentTimeMillis());
 	
 	private static void migrate(File oldSqlFile) throws SQLException, IOException {
 		oldConn = DriverManager.getConnection("jdbc:derby:memory:mig_db;create=true");
@@ -174,6 +177,10 @@ public class RecruitoolMigrator {
 
 				long role_id = rs.getLong("role_id");
 
+				// Hash password
+				if (password != null)
+					password = Crypto.simpleHash(password);
+				
 				// Create legacy account
 				LegacyAccount account = new LegacyAccount();
 
@@ -332,7 +339,7 @@ public class RecruitoolMigrator {
 		try (PreparedStatement newApplStmt = newConn.prepareStatement(newApplSql))
 		{
 			newApplStmt.setString(1, "SUBMITTED");
-			newApplStmt.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+			newApplStmt.setTimestamp(2, NOW);
 
 			newApplStmt.setLong(3, acc.id);
 
