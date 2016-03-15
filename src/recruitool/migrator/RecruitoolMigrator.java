@@ -21,8 +21,12 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import security.Crypto;
 
 /**
@@ -31,6 +35,22 @@ import security.Crypto;
  */
 public class RecruitoolMigrator {
 	private RecruitoolMigrator() {
+	}
+	
+	static {
+		for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+			if (info.getName().equals("Nimbus")) {
+				try {
+					UIManager.setLookAndFeel(info.getClassName());
+					break;
+				} catch (ClassNotFoundException
+						| InstantiationException
+						| IllegalAccessException
+						| UnsupportedLookAndFeelException ex) {
+					Logger.getLogger(RecruitoolMigrator.class.getName()).log(Level.SEVERE, null, ex);
+				}
+			}
+		}
 	}
 	
 	public static void main(String[] args) {
